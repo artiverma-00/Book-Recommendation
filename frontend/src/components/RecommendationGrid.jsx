@@ -1,8 +1,32 @@
-import React from 'react';
-import { BookCard } from './BookCard';
+import React from "react";
+import { BookCard } from "./BookCard";
 
 export function RecommendationGrid({ recommendations }) {
-  if (!recommendations || recommendations.length === 0) {
+  // Filter books to only show those with a valid cover image
+  const validBooks = (recommendations || []).filter((rec) => {
+    if (!rec || typeof rec !== "object") return false;
+    
+    // Unified cover URL check
+    const coverUrl =
+      rec.image ||
+      rec.coverUrl ||
+      rec["Image-URL-M"] ||
+      rec["Image-URL-L"];
+    
+    if (!coverUrl || typeof coverUrl !== "string") return false;
+    const lowerUrl = coverUrl.toLowerCase();
+    
+    // Relaxed filtering: always show searched result, others hide only if text 'placeholder' exists
+    return (
+      rec.isMatched ||
+      (coverUrl && 
+       coverUrl.trim() !== "" && 
+       !lowerUrl.includes("placeholder") &&
+       !lowerUrl.includes("unsplash.com"))
+    );
+  });
+
+  if (validBooks.length === 0) {
     return (
       <div className="w-full py-16 flex flex-col items-center justify-center text-muted-foreground bg-card rounded-xl border border-border/50 shadow-sm mt-8">
         <p className="text-lg">No recommendations yet.</p>
@@ -17,23 +41,11 @@ export function RecommendationGrid({ recommendations }) {
         Recommended Books
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {recommendations.map((rec, index) => {
-          const title = typeof rec === 'object' 
-            ? (rec.title || rec['Book-Title'] || rec[0] || 'Unknown Book') 
-            : rec;
-          return (
-            <BookCard 
-              key={`${title}-${index}`} 
-              title={title} 
-              coverUrl={
-                typeof rec === 'object' 
-                  ? (rec.coverUrl || rec.image || rec['Image-URL-M'] || rec['Image-URL-L'] || rec[1] || null) 
-                  : null
-              } 
-            />
-          );
-        })}
+        {validBooks.map((rec, index) => (
+          <BookCard key={rec.isbn || `${rec.title}-${index}`} book={rec} />
+        ))}
       </div>
     </div>
   );
 }
+
